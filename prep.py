@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # pre-processing
 
-import json
 import collections
+import itertools
 import pandas as pd
 
 import matplotlib.pyplot as plt
@@ -101,66 +101,11 @@ class NounSentences():
         for st in self.nouns:
             print(st)
 
-def normalize(sentences):
-    for sentence in sentences:
-        sentence = neologdn.normalize(sentence)
-        semtemce = unicodedata.normalize('NFKC', sentence)
+    def make_comb(self):
+        comb_ns = [list(itertools.combinations(st, 2)) for st in self.nouns]
+        comb = list(itertools.chain.from_iterable([[tuple(sorted(c)) for c in comb] for comb in comb_ns]))
+        return comb
 
-def count_words(sentences, mecab, most=50):
-    sentences = ''.join(sentences)
-    words = mecab.parse(sentences).split()
-    word_count = collections.Counter(words)
-    pd.set_option('display.max_rows', most)
-    print(pd.DataFrame([list(r) for r in list(word_count.most_common()[:most])]))
-
-    # plot frequency
-    y = [c for w, c in word_count.most_common()]
-    x = [w for w, c in word_count.most_common()]
-    plt.bar(x[0:most], y[0:most])
-    plt.xticks(rotation=90)
-    plt.show()
-
-    return x
-
-def get_noun(sentences, mecab, stopwords):
-    nouns = []
-    for sentence in sentences:
-        morph = [x.split(' ') for x in mecab.parse(sentence).replace(',', ' ').split('\n')][:-1]
-        print(morph)
-        nouns.append([x[1] for x in morph if '名詞' in x[2] and x[1] not in stopwords])
-    return nouns
-
-def main():
-    paths = json.load(open('./path.json', 'r'))
-
-    # with open(f'{paths["rawdir"]}/{paths["rawfile"]}', 'r', encoding='utf-8') as f:
-    #     rawdata = f.readlines()
-    # rawdata = ''.join(rawdata).replace('\n', '')
-    # sentences = rawdata.split('。')
-    # normalize(sentences)
-
-    # wakati = MeCab.Tagger('-Owakati')
-    # freq_words = count_words(sentences, wakati)
-    
-    # print('Please input number of word than which more frequent words you add stopwords.')
-    # max = int(input())
-
-    # stopwords = freq_words[:max]
-    # dump = MeCab.Tagger('-Odump')
-    # nouns = get_noun(sentences, dump, stopwords)
-
-    # print(sentences)
-    # print(nouns)
-
-    R = RawText(filepath=f'{paths["rawdir"]}/{paths["rawfile"]}')
-    R.normalize()
-    R.count_words()
-    # R.print()
-
-    S = Sentences(R)
-    # S.print()
-    N = NounSentences(S)
-    N.print()
-
-if __name__ == '__main__':
-    main()
+class Combinations():
+    def __init__(self, nouns: NounSentences):
+        self.combs = nouns.make_comb()
