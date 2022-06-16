@@ -1,8 +1,0 @@
-{
-    "rawdir": "./rawdata",
-    "textdir": "./textdata",
-    "resultdir": "./result",
-
-    "rawfile": "sample.txt",
-    "textfile": "sample.txt"
-}

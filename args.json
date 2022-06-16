@@ -1,0 +1,13 @@
+{
+    "rawdir": "./rawdata",
+    "textdir": "./textdata",
+    "resultdir": "./result",
+
+    "rawfile": "sample.txt",
+    "textfile": "sample.txt",
+    "resultfile": "sample.png",
+
+    "n_word_lower": 5,
+    "edge_threshold": 0.015,
+    "restitution_coef": 0.08
+}

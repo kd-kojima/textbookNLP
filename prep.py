@@ -105,7 +105,3 @@ class NounSentences():
         comb_ns = [list(itertools.combinations(st, 2)) for st in self.nouns]
         comb = list(itertools.chain.from_iterable([[tuple(sorted(c)) for c in comb] for comb in comb_ns]))
         return comb
-
-class Combinations():
-    def __init__(self, nouns: NounSentences):
-        self.combs = nouns.make_comb()
