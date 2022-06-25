@@ -1,13 +1,17 @@
 {
+    "ipadic": "C:\\Program Files\\MeCab\\dic\\ipadic",
+    "userdic": "C:\\Program Files\\MeCab\\dic\\user\\course_guidelines.dic",
+
+    "stopwords": "./stopwords.txt",
+
     "rawdir": "./rawdata",
     "textdir": "./textdata",
+    "noundir": "./noundata",
     "resultdir": "./result",
 
-    "rawfile": "sample.txt",
-    "textfile": "sample.txt",
-    "resultfile": "sample.png",
+    "filename": "course_03",
 
-    "n_word_lower": 5,
-    "edge_threshold": 0.015,
-    "restitution_coef": 0.08
+    "n_word_lower": 12,
+    "edge_threshold": 0.02,
+    "restitution_coef": 0.05
 }
