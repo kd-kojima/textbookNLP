@@ -72,10 +72,14 @@ class RawText():
 class Sentences():
     def __init__(self, rawtext: RawText, stopwords: list = None):
         self.sts = rawtext.get_sentences()
-        if stopwords is None:
-            self.stopwords = rawtext.get_stopwords()
-        else:
-            self.stopwords = stopwords
+        self.stopwords = rawtext.get_stopwords()
+        if stopwords is not None:
+            self.stopwords.extend(stopwords)
+
+    def save(self, filepath):
+        with open(filepath, 'w', encoding='utf-8') as f:
+            for line in self.sts:
+                f.write(f'{line}。\n')
 
     def normalize(self):
         for st in self.sts:
@@ -94,12 +98,18 @@ class Sentences():
             print(st)
         
 class NounSentences():
-    def __init__(self, sentences: Sentences):
-        self.nouns = sentences.get_noun()
+    def __init__(self, sentences: Sentences, mecab=MeCab.Tagger('-Odump')):
+        self.nouns = sentences.get_noun(mecab=mecab)
 
     def print(self):
         for st in self.nouns:
             print(st)
+
+    def save(self, filepath):
+        with open(filepath, 'w', encoding='utf-8') as f:
+            for st in self.nouns:
+                f.write(','.join(st))
+                f.write('\n')
 
     def make_comb(self):
         comb_ns = [list(itertools.combinations(st, 2)) for st in self.nouns]
