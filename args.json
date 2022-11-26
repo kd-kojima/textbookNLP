@@ -1,6 +1,6 @@
 {
-    "ipadic": "C:\\Program Files\\MeCab\\dic\\ipadic",
-    "userdic": "C:\\Program Files\\MeCab\\dic\\user\\user.dic",
+    "ipadic": "/opt/homebrew/lib/mecab/dic/ipadic",
+    "userdic": "/opt/homebrew/lib/mecab/dic/user/user.dic",
 
     "stopwords": "./stopwords.txt",
 
