@@ -1,6 +1,6 @@
 {
     "ipadic": "C:\\Program Files\\MeCab\\dic\\ipadic",
-    "userdic": "C:\\Program Files\\MeCab\\dic\\user\\course_guidelines.dic",
+    "userdic": "C:\\Program Files\\MeCab\\dic\\user\\user.dic",
 
     "stopwords": "./stopwords.txt",
 
@@ -9,9 +9,9 @@
     "noundir": "./noundata",
     "resultdir": "./result",
 
-    "filename": "course_03",
+    "filename": "integrated",
 
     "n_word_lower": 12,
-    "edge_threshold": 0.02,
+    "edge_threshold": 0.03,
     "restitution_coef": 0.05
 }
