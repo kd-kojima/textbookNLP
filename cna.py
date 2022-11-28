@@ -8,7 +8,7 @@
 # ----------------------
 # Import modules
 # 
-import math, itertools
+import sys, math, itertools
 import pandas as pd
 import numpy as np
 import matplotlib
@@ -23,31 +23,54 @@ import neologdn, unicodedata
 # 
 filename = 'integrated' # which text data to use
 
+PLOT_FOR_THESIS = False
+FIG_DRAW_REP_FOR_THESIS = 1
+
 MIN_WORD_RATIO = {  # (word_freq / num_of_passage(sentence))
-    'integrated': 0.016
+    'course_guidelines': 0.02, # 0.02
+    'integrated': 0.02, # 0.02
+    'course_01': 0.022, # 0.022
+    'course_02': 0.022, # 0.022
+    'course_03': 0.028 # 0.028
 } 
-MAX_JACCARD = {
-    'integrated': 0.95
-}
 MIN_JACCARD = {
-    'integrated': 0.24
+    'course_guidelines': 0.24, # 0.24
+    'integrated': 0.24, # 0.24
+    'course_01': 0.24, # 0.24
+    'course_02': 0.30, # 0.30
+    'course_03': 0.35 # 0.35
 }
 
 LAYOUT_K_FACTOR = {
-    'integrated': 1
+    'course_guidelines': 1, # 1
+    'integrated': 1, # 1
+    'course_01': 1, # 1
+    'course_02': 1, # 1
+    'course_03': 1 # 1
 }
 LAYOUT_ITERATION = {
-    'integrated': 25
+    'course_guidelines': 25, # 25
+    'integrated': 25, # 25
+    'course_01': 30, # 30
+    'course_02': 28, # 28
+    'course_03': 25 # 25
 }
 NODE_SIZE_FACTOR = {
-    'integrated': 45000
+    'course_guidelines': 30000,
+    'integrated': 30000,
+    'course_01': 30000,
+    'course_02': 30000,
+    'course_03': 30000
 }
 EDGE_WIDTH_FACTOR = {
-    'integrated': 8
+    'course_guidelines': 8,
+    'integrated': 8,
+    'course_01': 8,
+    'course_02': 8,
+    'course_03': 8
 }
 
 min_word_ratio = MIN_WORD_RATIO[filename]
-max_jaccard = MAX_JACCARD[filename]
 min_jaccard = MIN_JACCARD[filename]
 layout_k_factor = LAYOUT_K_FACTOR[filename]
 layout_iteration = LAYOUT_ITERATION[filename]
@@ -64,6 +87,8 @@ text_dir = './textdata'
 noun_dir = './noundata'
 csv_dir = './csv'
 result_dir = './result'
+
+thesis_dir = './thesis_fig'
 
 # ----------------------
 # Read stopwords
@@ -82,7 +107,7 @@ with open(f'{raw_dir}/{filename}.txt', 'r', encoding='utf-8') as f:
 # ----------------------
 # Split sentence (or passage)
 # 
-# rawdata = ''.join(rawdata).replace('\n\u3000', '<newpassage>').replace('\n', '').replace('<newpassage>', '\n')
+# rawdata = ''.join(rawdata).replace('\n\u3000', '<newpassage>').replace('\n', '').replace('<newpassage>', '\n') # split passage
 rawdata = ''.join(rawdata).replace('\n', '').replace('。','。\n') # split sentence
 rawdata = neologdn.normalize(rawdata)
 rawdata = unicodedata.normalize('NFKC', rawdata)
@@ -114,7 +139,7 @@ with open(f'{noun_dir}/{filename}.txt', 'w', encoding='utf-8') as f:
         f.write('\n')
 
 nouns = [set(line) for line in nouns]
-num_of_sets = len(nouns)
+num_of_sentences = len(nouns)
 
 # ----------------------
 # Count nouns
@@ -125,9 +150,9 @@ for word in list(itertools.chain.from_iterable(nouns)):
 
 freqs_df = pd.DataFrame.from_dict(freqs, orient='index', columns=['freq'])
 
-# plt.rcParams['font.family'] = 'IPAexGothic'
-# plt.bar(freqs_df.sort_values('freq', ascending=False)[0:50].index.values, freqs_df.sort_values('freq', ascending=False)['freq'][0:50])
-# plt.show()
+plt.rcParams['font.family'] = 'Hiragino Sans'
+plt.bar(freqs_df.sort_values('freq', ascending=False)[0:50].index.values, freqs_df.sort_values('freq', ascending=False)['freq'][0:50])
+plt.show()
 
 # ----------------------
 # Make combinations
@@ -158,9 +183,9 @@ for _, row in combi_df.iterrows():
     if union != 0:
         jaccard = row.freq / union
     w1_freq.append(freqs_df.loc[row.w1].freq)
-    w1_ratio.append(freqs_df.loc[row.w1].freq / num_of_sets)
+    w1_ratio.append(freqs_df.loc[row.w1].freq / num_of_sentences)
     w2_freq.append(freqs_df.loc[row.w2].freq)
-    w2_ratio.append(freqs_df.loc[row.w2].freq / num_of_sets)
+    w2_ratio.append(freqs_df.loc[row.w2].freq / num_of_sentences)
     jaccards.append(jaccard)
 
 # ----------------------
@@ -179,7 +204,7 @@ combi_df.sort_values('jaccard', ascending=False).to_csv(f'{csv_dir}/{filename}_d
 G = nx.Graph()
 G.add_nodes_from(freqs_df.index.values)
 for _, row in combi_df.iterrows():
-    if row.w1_ratio >= min_word_ratio and row.w2_ratio >= min_word_ratio and min_jaccard <= row.jaccard and row.jaccard <= max_jaccard:
+    if row.w1_ratio >= min_word_ratio and row.w2_ratio >= min_word_ratio and row.jaccard >= min_jaccard:
         G.add_edge(row.w1, row.w2, weight=row.jaccard)
 
 G.remove_nodes_from(list(nx.isolates(G)))
@@ -202,23 +227,26 @@ for node in G.nodes():
 # ----------------------
 # Plot graph
 # 
-# plt.figure(figsize=(8, 8))
+if not PLOT_FOR_THESIS:
+    plt.figure(figsize=(8, 8))
 
-# k = layout_k_factor / math.sqrt(len(G.nodes()))
-# layout = nx.spring_layout(G, k=k, iterations=layout_iteration)
+    k = layout_k_factor / math.sqrt(len(G.nodes()))
+    layout = nx.spring_layout(G, k=k, iterations=layout_iteration)
 
-# pr = nx.pagerank(G)
-# pr_values = np.array([pr[node] for node in G.nodes()])
-# nx.draw_networkx_nodes(G, layout, node_color=node_colors, cmap=plt.cm.get_cmap('Set3'), alpha=0.7, node_size=pr_values * node_size_factor)
+    pr = nx.pagerank(G)
+    pr_values = np.array([pr[node] for node in G.nodes()])
+    nx.draw_networkx_nodes(G, layout, node_color=node_colors, cmap=plt.cm.get_cmap('Set3'), alpha=0.7, node_size=pr_values * node_size_factor)
 
-# edge_width = [weight * edge_width_factor for _, _, weight in G.edges(data='weight')]
-# nx.draw_networkx_edges(G, layout, alpha=0.4, edge_color="darkgrey", width=edge_width)
+    edge_width = [weight * edge_width_factor for _, _, weight in G.edges(data='weight')]
+    nx.draw_networkx_edges(G, layout, alpha=0.4, edge_color='darkgrey', width=edge_width)
 
-# nx.draw_networkx_labels(G, layout, font_family='Hiragino Sans', font_size=10, font_weight='bold')
+    nx.draw_networkx_labels(G, layout, font_family='Hiragino Sans', font_size=10, font_weight='bold')
 
-# plt.axis('off')
-# # plt.savefig(f'{result_dir}/{filename}.pdf', dpi=300)
-# plt.show()
+    plt.axis('off')
+    # plt.savefig(f'{result_dir}/{filename}.pdf', dpi=300)
+    plt.show()
+
+    sys.exit()
 
 # ----------------------
 # Plot for thesis
@@ -229,10 +257,14 @@ plt.rcParams['pgf.texsystem'] = 'lualatex'
 plt.rcParams['pgf.preamble'] = r'\usepackage{unicode-math}\setmainfont{IPAexGothic}\setmathfont{Fira Math}'
 plt.rcParams['pgf.rcfonts'] = False
 
+print('Groups:')
+for connected in connecteds:
+    print(connected)
+
 color_thesis = {
-    'A7': '#ffd900',
+    'A7': '#c3d825',
     'A8': '#59b9c6',
-    'A9': '#706caa',
+    'A9': '#5383c3',
 }
 nodes_thesis = {
     'A7': [],
@@ -241,23 +273,41 @@ nodes_thesis = {
     'others': []
 }
 
-if filename == 'integrated':
-    for i, connected in enumerate(connecteds):
-        if 'x' in connected and 'y' in connected and '値' in connected:
-            nodes_thesis['A7'].extend([list(G.nodes()).index(node) for node in connected])
-        elif '一方' in connected and '他方' in connected:
-            nodes_thesis['A7'].extend([list(G.nodes()).index(node) for node in connected])
-        elif '日常' in connected:
-            nodes_thesis['A8'].extend([list(G.nodes()).index(node) for node in connected])
-        elif '実験' in connected and '観察' in connected and '予測' in connected:
-            nodes_thesis['A8'].extend([list(G.nodes()).index(node) for node in connected])
-        elif 'グラフ' in connected and '式' in connected and '対応' in connected:
-            nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
-        elif '座標' in connected and '平面' in connected:
-            nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
-        else:
-            nodes_thesis['others'].extend([list(G.nodes()).index(node) for node in connected])
+for connected in connecteds:
+    if 'グラフ' in connected and '式' in connected:
+        nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '座標' in connected and '平面' in connected:
+        nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '変化の割合' in connected and '一定' in connected:
+        nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
+    elif 'x' in connected and 'y' in connected:
+        nodes_thesis['A7'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '一方' in connected and '他方' in connected:
+        nodes_thesis['A7'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '日常' in connected:
+        nodes_thesis['A8'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '実験' in connected and '予測' in connected:
+        nodes_thesis['A8'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '実験' in connected and '観察' in connected:
+        nodes_thesis['A8'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '具体' in connected and '事象' in connected:
+        nodes_thesis['A8'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '円' in connected and '方程式' in connected:
+        nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '不等式' in connected and '領域' in connected:
+        nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '定積分' in connected and '面積' in connected:
+        nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '関数関係' in connected and '意味' in connected:
+        nodes_thesis['A7'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '概念' in connected and '実感' in connected:
+        nodes_thesis['A7'].extend([list(G.nodes()).index(node) for node in connected])
+    elif '交点' in connected and '意味' in connected:
+        nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
+    else:
+        nodes_thesis['others'].extend([list(G.nodes()).index(node) for node in connected])
 
+for cnt in range(FIG_DRAW_REP_FOR_THESIS):
     plt.figure(figsize=(8, 8))
 
     k = layout_k_factor / math.sqrt(len(G.nodes()))
@@ -268,18 +318,18 @@ if filename == 'integrated':
 
     pr = nx.pagerank(G)
     pr_values = np.array([pr[node] for node in G.nodes()])
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['others'], node_color="#ffffff", alpha=0.7, node_size=pr_values[nodes_thesis['others']] * node_size_factor, edgecolors="#888888")
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A7'], node_color=color_thesis['A7'], alpha=0.6, node_size=pr_values[nodes_thesis['A7']] * node_size_factor * 0.5, linewidths=2.0, edgecolors=color_thesis['A7'])
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['others'], node_color='#ffffff', alpha=0.7, node_size=pr_values[nodes_thesis['others']] * node_size_factor, edgecolors='#aaaaaa')
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A7'], node_color=color_thesis['A7'], alpha=0.6, node_size=pr_values[nodes_thesis['A7']] * node_size_factor * 0.3, linewidths=3.0, edgecolors=color_thesis['A7'])
     nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A7'], node_color=color_thesis['A7'], alpha=0.4, node_size=pr_values[nodes_thesis['A7']] * node_size_factor)
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A8'], node_color=color_thesis['A8'], alpha=0.4, node_size=pr_values[nodes_thesis['A8']] * node_size_factor * 0.7, linewidths=1.0, edgecolors=color_thesis['A8'])
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A8'], node_color=color_thesis['A8'], alpha=0.45, node_size=pr_values[nodes_thesis['A8']] * node_size_factor * 0.7, linewidths=1.0, edgecolors=color_thesis['A8'])
     nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A8'], node_color=color_thesis['A8'], alpha=0.3, node_size=pr_values[nodes_thesis['A8']] * node_size_factor)
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A9'], node_color=color_thesis['A9'], alpha=0.8, node_size=pr_values[nodes_thesis['A9']] * node_size_factor)
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A9'], node_color=color_thesis['A9'], alpha=0.75, node_size=pr_values[nodes_thesis['A9']] * node_size_factor)
 
     edge_width = [weight * edge_width_factor for _, _, weight in G.edges(data='weight')]
-    nx.draw_networkx_edges(G, layout, alpha=0.4, edge_color="darkgrey", width=edge_width)
+    nx.draw_networkx_edges(G, layout, alpha=0.4, edge_color='darkgrey', width=edge_width)
 
     nx.draw_networkx_labels(G, layout, font_family='Hiragino Sans', font_size=10)
 
     plt.axis('off')
-    plt.savefig(f'{result_dir}/{filename}.pdf', dpi=300)
+    plt.savefig(f'{thesis_dir}/{filename}_{cnt:03}.pdf', dpi=300)
     plt.show()
