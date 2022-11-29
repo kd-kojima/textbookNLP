@@ -1,4 +1,4 @@
-# textbook NLP
+# CNA of course guidelines
 
-Natural Language Processing of mathematics textbook.
-This is for my bachelor thesis.
+Co-occurrence Network Analysis of mathematics course guidelines in Japan.
+This is for my senior thesis.

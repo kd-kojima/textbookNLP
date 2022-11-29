@@ -1,4 +1,13 @@
-/*/
+/__pycache__/
+/result/
+/temporal/
+/thesis_fig/
+/user_dic/
 .DS_Store
 *.docx
 *.pptx
+*sample.txt
+args.json
+prep.py
+cooc.py
+main.py

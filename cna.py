@@ -42,18 +42,18 @@ MIN_JACCARD = {
 }
 
 LAYOUT_K_FACTOR = {
-    'course_guidelines': 1, # 1
-    'integrated': 1, # 1
-    'course_01': 1, # 1
-    'course_02': 1, # 1
-    'course_03': 1 # 1
+    'course_guidelines': 2, # 2
+    'integrated': 2, # 2
+    'course_01': 2, # 2
+    'course_02': 2, # 2
+    'course_03': 1.5 # 1.5
 }
 LAYOUT_ITERATION = {
-    'course_guidelines': 25, # 25
-    'integrated': 25, # 25
-    'course_01': 30, # 30
-    'course_02': 28, # 28
-    'course_03': 25 # 25
+    'course_guidelines': 3000, # 3000
+    'integrated': 3000, # 3000
+    'course_01': 3000, # 3000
+    'course_02': 3000, # 3000
+    'course_03': 3000 # 3000
 }
 NODE_SIZE_FACTOR = {
     'course_guidelines': 30000,
@@ -209,6 +209,12 @@ for _, row in combi_df.iterrows():
 
 G.remove_nodes_from(list(nx.isolates(G)))
 
+if filename == 'integrated':
+    # because the group/subgraph composed from following two nodes is isolated from other groups (even if thin edges are added).
+    G.remove_node('知識')
+    G.remove_node('技能')
+
+# get subgraphs
 connecteds = []
 connected_indices = []
 colors = []
@@ -217,12 +223,28 @@ for i, c in enumerate(nx.connected_components(G)):
     connected_indices.append(i)
     colors.append(1/50 * i)
 
+# set colors
 node_colors = []
 for node in G.nodes():
     for i, c in enumerate(connecteds):
         if node in c:
             node_colors.append(colors[i])
             break
+
+# add thin edges
+for _, row in combi_df.iterrows():
+    if row.w1 in list(G.nodes()) and row.w2 in list(G.nodes()):
+        G.add_edge(row.w1, row.w2, weight=row.jaccard)
+
+# get edge list
+thick_edges = []
+thin_edges = []
+for i, edge in enumerate(G.edges(data='weight')):
+    w1, w2, weight = edge
+    if weight >= min_jaccard:
+        thick_edges.append(i)
+    else:
+        thin_edges.append(i)
 
 # ----------------------
 # Plot graph
@@ -238,12 +260,13 @@ if not PLOT_FOR_THESIS:
     nx.draw_networkx_nodes(G, layout, node_color=node_colors, cmap=plt.cm.get_cmap('Set3'), alpha=0.7, node_size=pr_values * node_size_factor)
 
     edge_width = [weight * edge_width_factor for _, _, weight in G.edges(data='weight')]
-    nx.draw_networkx_edges(G, layout, alpha=0.4, edge_color='darkgrey', width=edge_width)
+    nx.draw_networkx_edges(G, layout, edgelist=tuple([list(G.edges())[i] for i in thick_edges]), alpha=0.4, edge_color='#999999', width=[edge_width[i] for i in thick_edges])
+    nx.draw_networkx_edges(G, layout, edgelist=tuple([list(G.edges())[i] for i in thin_edges]), style='dashed', alpha=0.4, edge_color='#bbbbbb', width=[edge_width[i] for i in thin_edges])
 
     nx.draw_networkx_labels(G, layout, font_family='Hiragino Sans', font_size=10, font_weight='bold')
 
     plt.axis('off')
-    # plt.savefig(f'{result_dir}/{filename}.pdf', dpi=300)
+    # plt.savefig(f'{result_dir}/{filename}.png', dpi=300)
     plt.show()
 
     sys.exit()
@@ -273,6 +296,7 @@ nodes_thesis = {
     'others': []
 }
 
+# Classify groups
 for connected in connecteds:
     if 'グラフ' in connected and '式' in connected:
         nodes_thesis['A9'].extend([list(G.nodes()).index(node) for node in connected])
@@ -308,8 +332,6 @@ for connected in connecteds:
         nodes_thesis['others'].extend([list(G.nodes()).index(node) for node in connected])
 
 for cnt in range(FIG_DRAW_REP_FOR_THESIS):
-    plt.figure(figsize=(8, 8))
-
     k = layout_k_factor / math.sqrt(len(G.nodes()))
     layout = nx.spring_layout(G, k=k, iterations=layout_iteration)
     layout_thesis = {}
@@ -318,18 +340,47 @@ for cnt in range(FIG_DRAW_REP_FOR_THESIS):
 
     pr = nx.pagerank(G)
     pr_values = np.array([pr[node] for node in G.nodes()])
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['others'], node_color='#ffffff', alpha=0.7, node_size=pr_values[nodes_thesis['others']] * node_size_factor, edgecolors='#aaaaaa')
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A7'], node_color=color_thesis['A7'], alpha=0.6, node_size=pr_values[nodes_thesis['A7']] * node_size_factor * 0.3, linewidths=3.0, edgecolors=color_thesis['A7'])
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A7'], node_color=color_thesis['A7'], alpha=0.4, node_size=pr_values[nodes_thesis['A7']] * node_size_factor)
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A8'], node_color=color_thesis['A8'], alpha=0.45, node_size=pr_values[nodes_thesis['A8']] * node_size_factor * 0.7, linewidths=1.0, edgecolors=color_thesis['A8'])
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A8'], node_color=color_thesis['A8'], alpha=0.3, node_size=pr_values[nodes_thesis['A8']] * node_size_factor)
-    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A9'], node_color=color_thesis['A9'], alpha=0.75, node_size=pr_values[nodes_thesis['A9']] * node_size_factor)
 
     edge_width = [weight * edge_width_factor for _, _, weight in G.edges(data='weight')]
-    nx.draw_networkx_edges(G, layout, alpha=0.4, edge_color='darkgrey', width=edge_width)
+
+    # Plot classified graph
+    plt.figure(figsize=(8, 8))
+
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['others'], node_color='#ffffff', alpha=0.7, node_size=pr_values[nodes_thesis['others']] * node_size_factor, edgecolors='#aaaaaa')
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A9'], node_color=color_thesis['A9'], alpha=0.75, node_size=pr_values[nodes_thesis['A9']] * node_size_factor)
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A8'], node_color=color_thesis['A8'], alpha=0.45, node_size=pr_values[nodes_thesis['A8']] * node_size_factor * 0.7, linewidths=1.0, edgecolors=color_thesis['A8'])
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A8'], node_color=color_thesis['A8'], alpha=0.3, node_size=pr_values[nodes_thesis['A8']] * node_size_factor)
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A7'], node_color=color_thesis['A7'], alpha=0.6, node_size=pr_values[nodes_thesis['A7']] * node_size_factor * 0.3, linewidths=3.0, edgecolors=color_thesis['A7'])
+    nx.draw_networkx_nodes(G, layout_thesis, nodelist=nodes_thesis['A7'], node_color=color_thesis['A7'], alpha=0.4, node_size=pr_values[nodes_thesis['A7']] * node_size_factor)
+
+    nx.draw_networkx_edges(G, layout, edgelist=tuple([list(G.edges())[i] for i in thick_edges]), alpha=0.4, edge_color='#999999', width=[edge_width[i] for i in thick_edges])
+    nx.draw_networkx_edges(G, layout, edgelist=tuple([list(G.edges())[i] for i in thin_edges]), style='dashed', alpha=0.4, edge_color='#bbbbbb', width=[edge_width[i] for i in thin_edges])
 
     nx.draw_networkx_labels(G, layout, font_family='Hiragino Sans', font_size=10)
 
+    plt.scatter([], [], c=color_thesis['A7'], label='$\mathrm{A7_c}$', alpha=0.7)
+    plt.scatter([], [], c=color_thesis['A8'], label='$\mathrm{A8_c}$', alpha=0.7)
+    plt.scatter([], [], c=color_thesis['A9'], label='$\mathrm{A9_c}$', alpha=0.7)
+
     plt.axis('off')
+    plt.legend()
     plt.savefig(f'{thesis_dir}/{filename}_{cnt:03}.pdf', dpi=300)
+    plt.show()
+
+    # Plot unclassified graph
+    plt.figure(figsize=(8, 8))
+
+    nx.draw_networkx_nodes(G, layout, node_color=node_colors, cmap=plt.cm.get_cmap('YlOrRd_r'), alpha=0.8, node_size=pr_values * node_size_factor)
+
+    nx.draw_networkx_edges(G, layout, edgelist=tuple([list(G.edges())[i] for i in thick_edges]), alpha=0.4, edge_color='#999999', width=[edge_width[i] for i in thick_edges])
+    nx.draw_networkx_edges(G, layout, edgelist=tuple([list(G.edges())[i] for i in thin_edges]), style='dashed', alpha=0.4, edge_color='#bbbbbb', width=[edge_width[i] for i in thin_edges])
+
+    nx.draw_networkx_labels(G, layout, font_family='Hiragino Sans', font_size=10)
+
+    for i, c in enumerate(colors):
+        plt.scatter([], [], c=plt.cm.get_cmap('YlOrRd_r')((i+1)/len(colors)), label=f'{i+1}', alpha=0.8)
+
+    plt.axis('off')
+    plt.legend()
+    plt.savefig(f'{thesis_dir}/{filename}_unclassified_{cnt:03}.pdf', dpi=300)
     plt.show()
