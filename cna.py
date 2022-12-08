@@ -26,7 +26,7 @@ filename = 'integrated' # which text data to use
 PLOT_FOR_THESIS = False
 FIG_DRAW_REP_FOR_THESIS = 1
 
-MIN_WORD_RATIO = {  # (word_freq / num_of_passage(sentence))
+MIN_WORD_RATIO = {  # (word_freq / num_of_sentence)
     'course_guidelines': 0.02, # 0.02
     'integrated': 0.02, # 0.02
     'course_01': 0.022, # 0.022
@@ -105,10 +105,9 @@ with open(f'{raw_dir}/{filename}.txt', 'r', encoding='utf-8') as f:
     rawdata = f.readlines()
 
 # ----------------------
-# Split sentence (or passage)
+# Split sentence
 # 
-# rawdata = ''.join(rawdata).replace('\n\u3000', '<newpassage>').replace('\n', '').replace('<newpassage>', '\n') # split passage
-rawdata = ''.join(rawdata).replace('\n', '').replace('。','。\n') # split sentence
+rawdata = ''.join(rawdata).replace('\n', '').replace('。','。\n')
 rawdata = neologdn.normalize(rawdata)
 rawdata = unicodedata.normalize('NFKC', rawdata)
 
